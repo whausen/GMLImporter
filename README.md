@@ -125,7 +125,7 @@ xplan:718a9ac3-a2fc-4aeb-b0c4-03e34ab9c837 rdf:type gml:Envelope .
         </gml:Point>
       </xplan:position>
 ```
-Geometries are commonly represented in a DOM subtree of what we would identify as an owl:ObjectProperty during the course of the algorithm.
+Geometries are commonly represented in a DOM subtree in the GML namespace of what we would identify as an owl:ObjectProperty during the course of the algorithm.
 To represent geometries in RDF, we choose the GeoSPARQL vocabulary and would represent the above geometry as follows:
 ```ttl
 xplan:position rdf:type owl:ObjectProperty .
