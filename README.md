@@ -101,7 +101,7 @@ xplan:gehoertZuBereich rdfs:domain xplan:BP_AnpflanzungBindungErhaltung .
 xplan:GML_02979472-c921-4b72-8a47-135eb32eede3 xplan:gehoertZuBereich xplan:GML_7af470e9-0167-43ae-823d-56e4241eab9d . 
 xplan:GML_7af470e9-0167-43ae-823d-56e4241eab9d rdf:type owl:NamedInvididual . 
 ```
-In case the linked Invidual is also defined in the same file, it will be imported as well, in case it is not included it is at least present as an owl:NamedINvidiual type.
+In case the linked Individual is also defined in the same file, it will be imported as well, in case it is not included it is at least present as an owl:NamedIndividual type.
 ### **ObjectProperty from DOM subtree**
 ```xml
 <gml:boundedBy>
@@ -111,7 +111,7 @@ In case the linked Invidual is also defined in the same file, it will be importe
     </gml:Envelope>
 </gml:boundedBy>
 ```
-In the case shown above an owl:ObjectProperty is created an a new Invididual including a UUID as name is created. 
+In the case shown above an owl:ObjectProperty and a new Invididual including a UUID as name is created. 
 The class is extracted from the next child element in the DOM tree.
 ```ttl
 xplan:GML_02979472-c921-4b72-8a47-135eb32eede3 gml:boundedBy xplan:718a9ac3-a2fc-4aeb-b0c4-03e34ab9c837 .
@@ -125,8 +125,8 @@ xplan:718a9ac3-a2fc-4aeb-b0c4-03e34ab9c837 rdf:type gml:Envelope .
         </gml:Point>
       </xplan:position>
 ```
-Geometries are commonly represented in a DOM subtree of what we would identify as an ObjectProperty during the course of the algorithm.
-To represent geometries, in RDF, we choose the GeoSPARQL vocabulary and would represent the above geometry as follows:
+Geometries are commonly represented in a DOM subtree of what we would identify as an owl:ObjectProperty during the course of the algorithm.
+To represent geometries in RDF, we choose the GeoSPARQL vocabulary and would represent the above geometry as follows:
 ```ttl
 xplan:position rdf:type owl:ObjectProperty .
 xplan:position rdfs:range geo:gmlLiteral .
@@ -143,12 +143,12 @@ Currently we use the [Java Topology Suite (JTS)](https://projects.eclipse.org/pr
 ```ttl
 xplan:GML_cd5cba8f-f9ca-4255-888a-7417995b4e9d geo:asWKT "POINT(3480102.593 5889803.7)"^^geo:wktLiteral .
 ```
-In our JavaScript implementation we add unofficial asGeoJSON and asKML representations as well.
+In our JavaScript implementation we add unofficial geo:asGeoJSON and geo:asKML representations as well.
 ### **Representing properties of DataProperty elements**:
 ```xml
 <xplan:kronendurchmesser uom="m">1</xplan:kronendurchmesser>
 ```
-Currently there is not support for importing properties as shown above, but it could be a TODO to implement this in the following way:
+Currently there is no support for importing properties as shown above, but it could be a TODO to implement this in the following way:
 ```ttl
 xplan:GML_02979472-c921-4b72-8a47-135eb32eede3 xplan:kronendurchmesser xplan:1d51e242-2d2e-4eb9-8920-f830d94b2dc7 .
 xplan:1d51e242-2d2e-4eb9-8920-f830d94b2dc7 rdf:type xplan:Kronendurchmesser .
