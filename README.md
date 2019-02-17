@@ -1,4 +1,7 @@
 # GMLImporter
+
+[![Build Status](https://travis-ci.com/i3mainz/GMLImporter.svg?branch=master)](https://travis-ci.com/i3mainz/GMLImporter)
+
 A Java program converting GML to TTL to integrate it with a local ontology.
 
 This is the java implementation of this approach. If you are looking for the JavaScript implementation please go to:
