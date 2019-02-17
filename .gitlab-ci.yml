@@ -5,7 +5,6 @@ image: maven:3-jdk-8
 stages:
   - build
   - test
-  - deploy
 
 # This is the name of the job.
 # You can choose it freely.
