@@ -5,6 +5,7 @@ image: maven:3-jdk-8
 stages:
   - build
   - test
+  - deploy
 
 build:
   stage: build
@@ -14,3 +15,11 @@ build:
     when: on_success
     paths:
     - target/*.jar
+    
+deploy:
+  script:
+    - 'cp ci_settings.xml /root/.m2/settings.xml'
+    - 'mvn deploy'
+  only:
+    - master
+  image: maven:3.3.9-jdk-8
