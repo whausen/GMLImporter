@@ -45,4 +45,21 @@
 </dependency>
   
   </dependencies>
+  <scm>
+    <connection>scm:git:${env.CI_REPOSITORY_URL}</connection>
+    <url>${env.CI_PROJECT_URL}</url>
+    <developerConnection>scm:git:${env.CI_REPOSITORY_URL}</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+<distributionManagement>
+    <snapshotRepository>
+      <id>gitlab-rlp</id>
+      <url>https://gitlab.rlp.net/api/v4/projects/${env.CI_PROJECT_ID}/packages/maven</url>
+    </snapshotRepository>
+    <repository>
+      <id>gitlab-rlp</id>
+      <url>https://gitlab.rlp.net/api/v4/projects/${env.CI_PROJECT_ID}/packages/maven</url>
+    </repository>
+  </distributionManagement>
+
 </project>
