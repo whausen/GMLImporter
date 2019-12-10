@@ -6,7 +6,7 @@
   <name>GMLtoRDFImporter</name>
   <description>Generic GML to RDF Importer</description>
   <build>
-    <sourceDirectory>src</sourceDirectory>
+    <sourceDirectory>src/main/java/</sourceDirectory>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -43,7 +43,24 @@
     <artifactId>commons-lang3</artifactId>
     <version>3.7</version>
 </dependency>
-  
+  <dependency>
+    <groupId>com.sun.jersey</groupId>
+    <artifactId>jersey-bundle</artifactId>
+    <version>1.19</version>
+</dependency>
+
+<dependency>
+		<groupId>com.sun.jersey</groupId>
+		<artifactId>jersey-server</artifactId>
+		<version>1.19</version>
+	</dependency>
+	<!-- https://mvnrepository.com/artifact/com.sun.jersey.contribs/jersey-multipart -->
+<dependency>
+    <groupId>com.sun.jersey.contribs</groupId>
+    <artifactId>jersey-multipart</artifactId>
+    <version>1.19</version>
+</dependency>
+	
   </dependencies>
   <scm>
     <connection>scm:git:${env.CI_REPOSITORY_URL}</connection>
@@ -54,11 +71,11 @@
 <distributionManagement>
     <snapshotRepository>
       <id>gitlab-rlp</id>
-      <url>https://gitlab.rlp.net/api/v4/projects/${env.CI_PROJECT_ID}/packages/maven</url>
+      <url>https://gitlab.rlp.net/api/v4/projects/2940/packages/maven</url>
     </snapshotRepository>
     <repository>
       <id>gitlab-rlp</id>
-      <url>https://gitlab.rlp.net/api/v4/projects/${env.CI_PROJECT_ID}/packages/maven</url>
+      <url>https://gitlab.rlp.net/api/v4/projects/2940/packages/maven</url>
     </repository>
   </distributionManagement>
 
