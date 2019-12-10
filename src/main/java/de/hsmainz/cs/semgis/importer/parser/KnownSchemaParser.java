@@ -67,6 +67,8 @@ public class KnownSchemaParser implements ContentHandler {
 	private static final String POINT = "Point";
 
 	private static final String HTTP = "http://";
+	
+	private static final String HTTPS = "https://";
 
 	private static Set<String> featureMembers = new TreeSet<String>(
 			Arrays.asList(new String[] { "featureMember", "member", "cityObjectMember" }));
@@ -145,7 +147,6 @@ public class KnownSchemaParser implements ContentHandler {
 		this.range = range;
 		this.domain = domain;
 		this.restrictionStack = new Stack<Map<String, String>>();
-		this.writerWOModel = new FileWriter(new File("outriskwoModel.rdf"));
 	}
 
 	@Override
@@ -183,6 +184,11 @@ public class KnownSchemaParser implements ContentHandler {
 					&& (!inClass || openedTags.size() > 2)) {
 				this.inClass = true;
 				if (openedTags.size() % 2 != 0) {
+					int count=StringUtils.countMatches(indid, "http");
+					if(count>1) {
+						indid=indid.substring(indid.lastIndexOf("http"));
+					}
+					System.out.println(indid);
 					this.currentIndividual = model.createIndividual(indid, model.createOntResource(indid));
 					this.currentIndividual.setRDFType(model.createClass(uriString));
 					this.currentType = uriString;
@@ -211,14 +217,6 @@ public class KnownSchemaParser implements ContentHandler {
 							Literal liter = this.determineLiteralType(attributes.getValue(i));
 							this.currentIndividual.addProperty(
 									model.createDatatypeProperty(uri + "#" + attributes.getQName(i)), liter);
-							try {
-								writerWOModel.write("<" + this.currentIndividual.getURI() + "> <" + uri + "#"
-										+ attributes.getQName(i) + "> \"" + liter.getValue() + "\"^^"
-										+ liter.getDatatype());
-							} catch (IOException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
 							if (domain)
 								model.createDatatypeProperty(uri + "#" + attributes.getQName(i))
 										.addDomain(this.currentIndividual.getRDFType());
@@ -236,14 +234,20 @@ public class KnownSchemaParser implements ContentHandler {
 
 			if (attributes.getValue(XLINKHREF) != null) {
 				String linkString;
-				if (!attributes.getValue(XLINKHREF).startsWith(HTTP)) {
+				if (!attributes.getValue(XLINKHREF).startsWith(HTTP) && !attributes.getValue(XLINKHREF).startsWith(HTTPS)) {
 					linkString = uri + attributes.getValue(XLINKHREF);
 				} else {
 					linkString = attributes.getValue(XLINKHREF);
 				}
 				Individual propInd;
 				if (this.model.getIndividual(linkString) == null) {
-					propInd = model.createIndividual(linkString, this.model.createOntResource(linkString));
+					int count=StringUtils.countMatches(linkString, "http");
+					if(count>1) {
+						String indid2=linkString.substring(linkString.lastIndexOf("http"));
+						propInd = model.createIndividual(indid2, this.model.createOntResource(linkString));
+					}else {
+						propInd = model.createIndividual(linkString, this.model.createOntResource(linkString));
+					}
 					this.currentIndividual
 							.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)), propInd);
 					this.lastlinkedIndividual=this.currentIndividual;
@@ -468,10 +472,13 @@ public class KnownSchemaParser implements ContentHandler {
 					alreadyHandled=true;
 				} else if (knownMappings.get(openedTags.get(openedTags.size() - 1)) != null
 						&& knownMappings.get(openedTags.get(openedTags.size() - 1)).isDatatypeProperty()) {
-					if (!codeSpace.isEmpty()) {
-						this.currentIndividual.addProperty(
-								model.createObjectProperty(openedTags.get(openedTags.size() - 1)),
-								codelist.createIndividual(codeSpace + literal));
+					if (!codeSpace.isEmpty()) {							
+								if(literal.contains(HTTP) || literal.contains(HTTPS)) {
+									this.currentIndividual.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)),codelist.createIndividual(literal));
+								}else {
+									this.currentIndividual.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)),codelist.createIndividual(codeSpace + literal));
+								}
+								
 					} else {
 						Literal liter = this.determineLiteralType(literal);
 						this.currentIndividual.addProperty(
@@ -490,9 +497,11 @@ public class KnownSchemaParser implements ContentHandler {
 				} else if (knownMappings.get(openedTags.get(openedTags.size() - 1)) != null
 						&& knownMappings.get(openedTags.get(openedTags.size() - 1)).isProperty()) {
 					if (!codeSpace.isEmpty()) {
-						this.currentIndividual.addProperty(
-								model.createObjectProperty(openedTags.get(openedTags.size() - 1)),
-								codelist.createIndividual(codeSpace + literal));
+						if(literal.contains(HTTP) || literal.contains(HTTPS)) {
+							this.currentIndividual.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)),codelist.createIndividual(literal));
+						}else {
+							this.currentIndividual.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)),codelist.createIndividual(codeSpace + literal));
+						}
 					} else {
 						this.currentIndividual.addProperty(
 								model.createDatatypeProperty(openedTags.get(openedTags.size() - 1)),
@@ -544,7 +553,13 @@ public class KnownSchemaParser implements ContentHandler {
 			stack2.pop();
 			restrictionStack.pop();
 			if (!stack.isEmpty()) {
-				this.currentIndividual = this.model.getIndividual(stack.lastElement());
+				int count=StringUtils.countMatches(stack.lastElement(), "http");
+				if(count>1) {
+					String indid=stack.lastElement().substring(stack.lastElement().lastIndexOf("http"));
+					this.currentIndividual = this.model.getIndividual(stack.lastElement());
+				}else {
+					this.currentIndividual = this.model.getIndividual(stack.lastElement());
+				}			
 				// System.out.println("endElement addProperty: "+lastElement);
 				this.currentIndividual.addProperty(
 						this.model.createObjectProperty(this.openedTags.get(this.openedTags.size() - 1)),

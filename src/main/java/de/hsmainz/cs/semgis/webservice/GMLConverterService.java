@@ -44,7 +44,7 @@ public class GMLConverterService {
 	
 		@POST
 		@Consumes(MediaType.MULTIPART_FORM_DATA)
-		@Produces(MediaType.TEXT_PLAIN)
+		@Produces({"text/ttl"})
 		@Path("/convert")
 	    public String queryService(@FormDataParam("file") InputStream uploadedInputStream,
 				@FormDataParam("file") FormDataContentDisposition fileDetail,
