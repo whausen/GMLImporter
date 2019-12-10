@@ -9,9 +9,9 @@ image: maven:3-jdk-8
 # But you could define any stages you want.
 stages:
   - build
-  - test
   - release
   - deploy
+  - test
 
 cache:
   paths:
@@ -19,6 +19,8 @@ cache:
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
+
 
 build:
   stage: build
