@@ -78,6 +78,8 @@ public class KnownSchemaParser implements ContentHandler {
 	private Map<String, OntResource> knownMappings;
 
 	private Individual currentIndividual;
+	
+	private Individual lastlinkedIndividual;
 
 	private String currentType;
 
@@ -244,6 +246,7 @@ public class KnownSchemaParser implements ContentHandler {
 					propInd = model.createIndividual(linkString, this.model.createOntResource(linkString));
 					this.currentIndividual
 							.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)), propInd);
+					this.lastlinkedIndividual=this.currentIndividual;
 					if (domain)
 						model.getObjectProperty(openedTags.get(openedTags.size() - 1))
 								.addDomain(this.currentIndividual.getRDFType());
@@ -251,6 +254,7 @@ public class KnownSchemaParser implements ContentHandler {
 					propInd = model.getIndividual(linkString);
 					this.currentIndividual
 							.addProperty(model.createObjectProperty(openedTags.get(openedTags.size() - 1)), propInd);
+					this.lastlinkedIndividual=this.currentIndividual;
 					if (domain)
 						model.getObjectProperty(openedTags.get(openedTags.size() - 1))
 								.addDomain(this.currentIndividual.getRDFType());
@@ -303,7 +307,7 @@ public class KnownSchemaParser implements ContentHandler {
 				multipleChildrenBuffer.append("<").append(openedTags2.get(openedTags2.size() - 1)).append(">")
 						.append(literal).append("</").append(openedTags2.get(openedTags2.size() - 1)).append(">");
 				alreadyHandled = true;
-			} else if (openedTags.get(openedTags.size() - 1).contains("posList")
+			} else if (openedTags.get(openedTags.size() - 1).contains("posList") || openedTags.get(openedTags.size() - 1).contains("coordinates")
 					|| openedTags.get(openedTags.size() - 1).contains("pos")) {
 				String wktlit = this.currentIndividual.getRDFType().getLocalName() + "(" + literal + ")";
 				this.gmlStrBuilder.delete(0, gmlStrBuilder.length());
@@ -314,13 +318,22 @@ public class KnownSchemaParser implements ContentHandler {
 						.append(">");
 				String gmlStr = gmlStrBuilder.toString();
 				// System.out.println("gmlStr: "+gmlStr);
+				if(this.lastlinkedIndividual!=null) {
+					this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
+					this.lastlinkedIndividual=null;
+				}
 				this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + ASGML),
 						this.model.createTypedLiteral(gmlStr, NSGEO + GMLLiteral));
 				if (!wktlit.contains(POINT))
 					wktlit = formatWKTString(wktlit, ' ', 2);
 				try {
+					wktlit=wktlit.replace(","," ");
 					com.vividsolutions.jts.geom.Geometry geom = (com.vividsolutions.jts.geom.Geometry) wktreader
 							.read(wktlit);
+					if(this.lastlinkedIndividual!=null) {
+						this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
+						this.lastlinkedIndividual=null;
+					}
 					this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + WKT),
 							this.model.createTypedLiteral(wktlit, NSGEO + WKTLiteral));
 				} catch (Exception e) {
@@ -506,6 +519,7 @@ public class KnownSchemaParser implements ContentHandler {
 				this.currentIndividual.addProperty(
 						model.createObjectProperty(openedTags.get(openedTags.size() - 1)),
 						ind);
+				this.lastlinkedIndividual=this.currentIndividual;
 		}
 		// System.out.println("Remove: "+uri+localName+ this.openedTags.contains(comb)+"
 		// - "+this.openedTags.size());
@@ -521,6 +535,7 @@ public class KnownSchemaParser implements ContentHandler {
 			if (localName.contains("Envelop")) {
 				this.envelope = false;
 				this.multipleChildrenBuffer.append("</").append(qName).append(">");
+				this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
 				this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + ASGML),
 						this.model.createTypedLiteral(multipleChildrenBuffer.toString(), GMLLiteral));
 			}
