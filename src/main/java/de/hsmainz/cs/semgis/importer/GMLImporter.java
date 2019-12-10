@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
@@ -176,6 +178,57 @@ public class GMLImporter {
 		return result;
 	}
 
+	public static OntModel processFile(String fileformat,String filepath,Boolean isString,Boolean enrich,String outpath) {
+		File infile=null;
+		String file="";
+		if(!isString) {
+			infile = new File(filepath);
+			if(!infile.exists() || infile.isDirectory()) {
+				System.out.println("Input file " + infile.getPath() + " does not exist!");
+				return null;
+			}
+		}else {
+			file=filepath;
+		}
+		File outfile = new File(outpath);
+		OntModel model = ModelFactory.createOntologyModel();
+		try {
+			KnownSchemaParser parser;
+			if (fileformat.isEmpty()) {
+				parser = new KnownSchemaParser(model, true, true);
+			} else {
+				parser = new KnownSchemaParser(model, false, false);
+			}
+			XMLReader reader = XMLReaderFactory.createXMLReader();
+			reader.setContentHandler(parser);
+			if(isString) {
+				reader.parse(new InputSource(new StringReader(file)));
+			}else{
+				reader.parse(new InputSource(new FileReader(infile)));
+			}
+			if (formatToOntology!=null && formatToOntology.containsKey(fileformat.toUpperCase())) {
+				for (String s : formatToOntology.get(fileformat)) {
+					OntModel modell = ModelFactory.createOntologyModel();
+					modell.read("ontologies/" + s);
+					enrichClasses(model, modell, enrich);
+				}
+			} else {
+				KnownSchemaParser.restructureDomains(model);
+			}
+			if(outpath==null || outpath.isEmpty()) {
+				String result="";
+				return parser.model;
+			}else {
+				parser.model.write(new FileWriter(new File(outpath)), "TTL");
+				return parser.model;
+			}
+
+		} catch (IOException | SAXException e) {
+			System.out.println("There was an error reading the file: " + e.getMessage());
+		}
+		return null;
+	}
+	
 	public static void main(String[] args) throws IOException {
 		readConfig();
 		if (args.length < 2) {
@@ -194,38 +247,7 @@ public class GMLImporter {
 				}
 			}
 			System.out.println(filepath + " - " + outpath + " - " + fileformat);
-			File file = new File(filepath);
-			File outfile = new File(outpath);
-			if (file.exists() && !file.isDirectory()) {
-				OntModel model = ModelFactory.createOntologyModel();
-				try {
-					KnownSchemaParser parser;
-					if (fileformat.isEmpty()) {
-						parser = new KnownSchemaParser(model, true, true);
-					} else {
-						parser = new KnownSchemaParser(model, false, false);
-					}
-					XMLReader reader = XMLReaderFactory.createXMLReader();
-					reader.setContentHandler(parser);
-					reader.parse(new InputSource(new FileReader(file)));
-					if (formatToOntology.containsKey(fileformat.toUpperCase())) {
-						for (String s : formatToOntology.get(fileformat)) {
-							OntModel modell = ModelFactory.createOntologyModel();
-							modell.read("ontologies/" + s);
-							enrichClasses(model, modell, enrich);
-						}
-					} else {
-						KnownSchemaParser.restructureDomains(model);
-					}
-					parser.model.write(new FileWriter(new File(outpath)), "TTL");
-					System.out.println("Finished the conversion");
-				} catch (IOException | SAXException e) {
-					System.out.println("There was an error reading the file: " + e.getMessage());
-				}
-
-			} else {
-				System.out.println("Input file " + file.getPath() + " does not exist!");
-			}
+			processFile(fileformat, filepath, false, enrich, outpath);
 		}
 
 	}

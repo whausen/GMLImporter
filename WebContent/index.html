@@ -1,0 +1,61 @@
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
+<script src="jquery-loader.js"></script>
+<style>
+.loading { margin: auto; }
+
+.loading span {
+  line-height: 32px;
+  margin-left: 12px;
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+.loading img { vertical-align: middle; }
+
+.loading_wrp {
+  background-color: #FFF;
+  display: block;
+  height: 100%;
+  left: 0;
+  opacity: 0.5;
+  filter: alpha(opacity=50);
+  position: absolute;
+  top: 0;
+  width: 100%;
+  z-index: 1020;
+}
+
+.loading_wrp .x16 span {
+  line-height: 16px;
+  font-size: 12px;
+  margin-left: 6px;
+}
+
+.loading_wrp .x32 img {
+  width: 32px;
+  height: 32px;
+}
+</style>
+<script>
+function convert(){
+	
+}
+</script>
+</head>
+
+<body>
+	<h1>GMLConverter: Convert your GML Files to RDF</h1>
+ 
+	<form action="rest/service/convert" method="post" enctype="multipart/form-data">
+ 
+	   <p>
+		Select a file : <input type="file" name="file" size="45" />
+	   </p>
+ 
+	   <input type="submit" onclick="convert()" value="Upload It" />
+	</form>
+ 
+</body>
+</html>

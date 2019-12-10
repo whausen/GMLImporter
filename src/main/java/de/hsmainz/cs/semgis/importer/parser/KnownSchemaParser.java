@@ -535,7 +535,8 @@ public class KnownSchemaParser implements ContentHandler {
 			if (localName.contains("Envelop")) {
 				this.envelope = false;
 				this.multipleChildrenBuffer.append("</").append(qName).append(">");
-				this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
+				if(this.lastlinkedIndividual!=null)
+					this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
 				this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + ASGML),
 						this.model.createTypedLiteral(multipleChildrenBuffer.toString(), GMLLiteral));
 			}
