@@ -5,6 +5,7 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>GMLtoRDFImporter</name>
   <description>Generic GML to RDF Importer</description>
+  <packaging>war</packaging>
   <build>
     <sourceDirectory>src/main/java/</sourceDirectory>
     <plugins>
@@ -21,6 +22,7 @@
         <version>3.0.0</version>
         <configuration>
           <warSourceDirectory>WebContent</warSourceDirectory>
+          <attachClasses>true</attachClasses>
         </configuration>
       </plugin>
     </plugins>
