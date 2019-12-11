@@ -38,6 +38,8 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.XSD;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 /**
  * Converts any GML file in its corresponding namespace to RDF, with optionally
@@ -125,6 +127,12 @@ public class KnownSchemaParser implements ContentHandler {
 
 	private Attributes attributes;
 	
+	private JSONObject geojsonresult;
+	
+	private JSONArray allfeatures;
+	
+	private JSONObject currentfeature;
+	
 	private String uuid=UUID.randomUUID().toString(),stringAttribute="";
 
 	public KnownSchemaParser(OntModel model, Boolean range, Boolean domain) throws IOException {
@@ -147,6 +155,10 @@ public class KnownSchemaParser implements ContentHandler {
 		this.range = range;
 		this.domain = domain;
 		this.restrictionStack = new Stack<Map<String, String>>();
+		this.geojsonresult=new JSONObject();
+		geojsonresult.put("type", "FeatureCollection");
+		allfeatures = new JSONArray();
+		geojsonresult.put("features", allfeatures);
 	}
 
 	@Override
@@ -157,7 +169,7 @@ public class KnownSchemaParser implements ContentHandler {
 	@Override
 	public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
 		this.attributes = attributes;
-		System.out.println(localName);
+		//System.out.println(localName);
 		alreadyHandled = false;
 		if (featureMember) {
 			String uriString = uri + "#" + localName;
@@ -188,7 +200,7 @@ public class KnownSchemaParser implements ContentHandler {
 					if(count>1) {
 						indid=indid.substring(indid.lastIndexOf("http"));
 					}
-					System.out.println(indid);
+					//System.out.println(indid);
 					this.currentIndividual = model.createIndividual(indid, model.createOntResource(indid));
 					this.currentIndividual.setRDFType(model.createClass(uriString));
 					this.currentType = uriString;

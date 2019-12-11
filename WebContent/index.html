@@ -1,7 +1,10 @@
 <html>
 <head>
-<script src="https://code.jquery.com/jquery-1.11.1.min.js"></script>
-<script src="jquery-loader.js"></script>
+<script
+  src="https://code.jquery.com/jquery-3.4.1.min.js"
+  integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+  crossorigin="anonymous"></script>
+<script src="js/circle-progress.min.js"></script>
 <style>
 .loading { margin: auto; }
 
@@ -39,23 +42,54 @@
 }
 </style>
 <script>
-function convert(){
-	
+function saveTextAsFile(tosave,fileext,filename)
+{
+    var a = document.createElement('a');
+    a.style = "display: none";  
+    var blob= new Blob([tosave], {type:'text/plain'});
+    var url = window.URL.createObjectURL(blob);
+    var filename = filename+fileext;
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);  
+    }, 1000);
 }
+
+function convert() {
+    var data = new FormData(); // das ist unser Daten-Objekt ...
+    data.append('file', document.getElementById('files').files[0]); // ... an die wir unsere Datei anhängen
+    $('#loading').show();
+    $.ajax({
+       url: 'rest/service/convert', // Wohin soll die Datei geschickt werden?
+       data: data,          // Das ist unser Datenobjekt.
+       type: 'POST',         // HTTP-Methode, hier: POST
+       processData: false,
+       contentType: false,
+       // und wenn alles erfolgreich verlaufen ist, schreibe eine Meldung
+       // in das Response-Div
+       success: function(data) { 
+    	    $('#loading').hide();
+    	   saveTextAsFile(data,".ttl","result");
+       }
+    });
+ }
 </script>
 </head>
 
 <body>
 	<h1>GMLConverter: Convert your GML Files to RDF</h1>
- 
-	<form action="rest/service/convert" method="post" enctype="multipart/form-data">
- 
+<div id="spinner">
+  <img src="ajax-loader.gif" alt="Loading" id="loading" style="display: none"/>
+</div>
 	   <p>
-		Select a file : <input type="file" name="file" size="45" />
+		Select a file : <input type="file" name="file" id="files" size="45" />
 	   </p>
  
-	   <input type="submit" onclick="convert()" value="Upload It" />
-	</form>
+	   <button id="uploadButton" onclick="convert()">Upload It</button>
  
 </body>
 </html>
