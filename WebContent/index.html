@@ -4,7 +4,6 @@
   src="https://code.jquery.com/jquery-3.4.1.min.js"
   integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
   crossorigin="anonymous"></script>
-<script src="js/circle-progress.min.js"></script>
 <style>
 .loading { margin: auto; }
 
@@ -61,7 +60,7 @@ function saveTextAsFile(tosave,fileext,filename)
 
 function convert() {
     var data = new FormData(); // das ist unser Daten-Objekt ...
-    data.append('file', document.getElementById('files').files[0]); // ... an die wir unsere Datei anhängen
+    data.append('file', document.getElementById('files').files[0]); // ... an die wir unsere Datei anhngen
     $('#loading').show();
     $.ajax({
        url: 'rest/service/convert', // Wohin soll die Datei geschickt werden?
