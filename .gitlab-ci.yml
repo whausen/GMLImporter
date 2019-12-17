@@ -15,10 +15,10 @@ stages:
 
 cache:
   paths:
-    - .m2/
+    - api/.m2/
 
 variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  MAVEN_OPTS: "-Dmaven.repo.local=api/.m2/repository"
   CONTAINER_RELEASE_IMAGE: $CI_REGISTRY_IMAGE:latest
 
 
