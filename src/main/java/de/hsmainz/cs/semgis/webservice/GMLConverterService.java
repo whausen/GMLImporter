@@ -1,8 +1,5 @@
 package de.hsmainz.cs.semgis.webservice;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringWriter;
@@ -27,7 +24,6 @@ import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jena.ontology.OntModel;
-import org.apache.jena.rdf.model.impl.StmtIteratorImpl;
 
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.Resource;
