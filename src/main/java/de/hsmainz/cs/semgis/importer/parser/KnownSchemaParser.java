@@ -1,12 +1,9 @@
 package de.hsmainz.cs.semgis.importer.parser;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +20,6 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.Locator;
 import org.xml.sax.SAXException;
 
-import com.vividsolutions.jts.io.WKTReader;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jena.ontology.DatatypeProperty;
 import org.apache.jena.ontology.Individual;
@@ -38,8 +33,6 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.jena.vocabulary.OWL;
 import org.apache.jena.vocabulary.XSD;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Converts any GML file in its corresponding namespace to RDF, with optionally
@@ -61,6 +54,16 @@ public class KnownSchemaParser implements ContentHandler {
 	public static final String NAME = "name";
 	public static final String TYPE = "type";
 	public static final String GMLLiteral = "gmlLiteral";
+	
+	public static final String hasGeometry= "hasGeometry";
+	
+	public static final String XMLSchema="http://www.w3.org/2001/XMLSchema#";
+	
+	public static final String RDFSchema="http://www.w3.org/2000/01/rdf-schema#";
+	
+	public static final String Envelope="Envelope";
+	
+	public static final String Corner="Corner";
 
 	private static final String TRUE = "true";
 
@@ -70,7 +73,13 @@ public class KnownSchemaParser implements ContentHandler {
 
 	private static final String HTTP = "http://";
 	
+	private static final String HTTP2 = "http";
+	
+	private static final String gmlid = "gml:id";
+	
 	private static final String HTTPS = "https://";
+	
+	private static final String HTTPS2 = "https";
 
 	private static Set<String> featureMembers = new TreeSet<String>(
 			Arrays.asList(new String[] { "featureMember", "member", "cityObjectMember" }));
@@ -79,7 +88,7 @@ public class KnownSchemaParser implements ContentHandler {
 
 	private static final String CODESPACE = "codeSpace";
 
-	private Map<String, OntResource> knownMappings;
+	private final Map<String, OntResource> knownMappings;
 
 	private Individual currentIndividual;
 	
@@ -89,37 +98,35 @@ public class KnownSchemaParser implements ContentHandler {
 
 	private Map<String, String> currentRestrictions;
 
-	private List<String> openedTags, openedTags2;
+	private final List<String> openedTags, openedTags2;
 
 	private Boolean featureMember, inClass, envelope;
 
-	private StringBuilder multipleChildrenBuffer;
+	private final StringBuilder multipleChildrenBuffer;
 
-	private StringBuilder gmlStrBuilder;
+	private final StringBuilder gmlStrBuilder;
 
 	private String codeSpace = "";
 
-	private Stack<String> stack, stack2;
+	private final Stack<String> stack, stack2;
 
-	private Stack<Map<String, String>> restrictionStack;
+	private final Stack<Map<String, String>> restrictionStack;
 
 	private Integer outertagCounter;
 
 	private Integer splitterCountThreshold = 0;
 
-	private StringBuilder attbuilder;
+	private final StringBuilder attbuilder;
 
-	SimpleDateFormat parserSDF1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+	private final SimpleDateFormat parserSDF1 = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
 
-	SimpleDateFormat parserSDF2 = new SimpleDateFormat("yyyy-MM-dd");
 
-	private WKTReader wktreader;
+	private final SimpleDateFormat parserSDF2 = new SimpleDateFormat("yyyy-MM-dd");
 
-	private FileWriter writerWOModel;
 
-	private Boolean range = false, domain = false,stringAttributeBool=false;
+	private Boolean range = false, domain = false;
 
-	private StringBuilder literalBuffer;
+	private final StringBuilder literalBuffer=new StringBuilder();
 
 	private boolean alreadyHandled;
 
@@ -127,15 +134,11 @@ public class KnownSchemaParser implements ContentHandler {
 
 	private Attributes attributes;
 	
-	private JSONObject geojsonresult;
-	
-	private JSONArray allfeatures;
-	
-	private JSONObject currentfeature;
-	
 	private String uuid=UUID.randomUUID().toString(),stringAttribute="";
 
-	public KnownSchemaParser(OntModel model, Boolean range, Boolean domain) throws IOException {
+	private String indnamespace;
+
+	public KnownSchemaParser(OntModel model, Boolean range, Boolean domain,String indnamespace) throws IOException {
 		this.model = model;
 		this.codelist = model.createClass("http://semgis.de/geodata#Codelist");
 		this.outertagCounter = 0;
@@ -150,15 +153,11 @@ public class KnownSchemaParser implements ContentHandler {
 		this.attbuilder = new StringBuilder();
 		this.currentRestrictions = new TreeMap<String, String>();
 		this.stack = new Stack<String>();
-		this.wktreader = new WKTReader();
+		this.indnamespace=indnamespace;
 		this.stack2 = new Stack<String>();
 		this.range = range;
 		this.domain = domain;
 		this.restrictionStack = new Stack<Map<String, String>>();
-		this.geojsonresult=new JSONObject();
-		geojsonresult.put("type", "FeatureCollection");
-		allfeatures = new JSONArray();
-		geojsonresult.put("features", allfeatures);
 	}
 
 	@Override
@@ -172,6 +171,10 @@ public class KnownSchemaParser implements ContentHandler {
 		//System.out.println(localName);
 		alreadyHandled = false;
 		if (featureMember) {
+			System.out.println(stack);
+			System.out.println(stack2);
+			System.out.println(openedTags);
+			System.out.println(openedTags2);
 			String uriString = uri + "#" + localName;
 			uriString = uriString.replace("##", "#");
 			if (!knownMappings.containsKey(uriString) && openedTags.size() % 2 != 1) {
@@ -184,10 +187,10 @@ public class KnownSchemaParser implements ContentHandler {
 			this.openedTags2.add(qName);
 			// System.out.println("OpenedTags: "+openedTags);
 			String value;
-			if (attributes.getValue("gml:id") == null) {
+			if (attributes.getValue(gmlid) == null) {
 				value = UUID.randomUUID().toString();
 			} else {
-				value = attributes.getValue("gml:id");
+				value = attributes.getValue(gmlid);
 			}
 			if (attributes.getValue(CODESPACE) != null)
 				this.codeSpace = attributes.getValue(CODESPACE);
@@ -196,9 +199,12 @@ public class KnownSchemaParser implements ContentHandler {
 					&& (!inClass || openedTags.size() > 2)) {
 				this.inClass = true;
 				if (openedTags.size() % 2 != 0) {
-					int count=StringUtils.countMatches(indid, "http");
+					int count=StringUtils.countMatches(indid, HTTP2);
 					if(count>1) {
-						indid=indid.substring(indid.lastIndexOf("http"));
+						indid=indid.substring(indid.lastIndexOf(HTTP2));
+						if(!indnamespace.isEmpty()) {
+							indid=indnamespace+indid.substring(indid.lastIndexOf('/')+1);
+						}
 					}
 					//System.out.println(indid);
 					this.currentIndividual = model.createIndividual(indid, model.createOntResource(indid));
@@ -207,7 +213,7 @@ public class KnownSchemaParser implements ContentHandler {
 					if (uriString.contains("Envelop")) {
 						this.envelope = true;
 						this.multipleChildrenBuffer.delete(0, this.multipleChildrenBuffer.length());
-						this.attbuilder = this.attbuilder.delete(0, this.attbuilder.length());
+						this.attbuilder.delete(0, this.attbuilder.length());
 						attbuilder.append("<");
 						attbuilder.append(qName);
 						attbuilder.append(" xmlns:gml=\"").append(uri).append("\"");
@@ -222,6 +228,8 @@ public class KnownSchemaParser implements ContentHandler {
 					// if(stack.isEmpty())
 					stack.push(this.currentIndividual.toString());
 					stack2.push(qName);
+					//System.out.println(stack);
+					//System.out.println(stack2);
 					if (attributes.getLength() > 0)
 						this.currentIndividual.addLabel(value, "en");
 					if (attributes.getLength() > 1) {
@@ -253,9 +261,9 @@ public class KnownSchemaParser implements ContentHandler {
 				}
 				Individual propInd;
 				if (this.model.getIndividual(linkString) == null) {
-					int count=StringUtils.countMatches(linkString, "http");
+					int count=StringUtils.countMatches(linkString, HTTP2);
 					if(count>1) {
-						String indid2=linkString.substring(linkString.lastIndexOf("http"));
+						String indid2=linkString.substring(linkString.lastIndexOf(HTTP2));
 						propInd = model.createIndividual(indid2, this.model.createOntResource(linkString));
 					}else {
 						propInd = model.createIndividual(linkString, this.model.createOntResource(linkString));
@@ -289,9 +297,7 @@ public class KnownSchemaParser implements ContentHandler {
 				splitterCountThreshold = 0;
 			}
 		}
-
-		literalBuffer = new StringBuilder();
-
+		literalBuffer.delete(0,literalBuffer.length());
 
 	}
 
@@ -302,7 +308,7 @@ public class KnownSchemaParser implements ContentHandler {
 		literalBuffer.append(literal.trim());
 		 if (featureMember && openedTags.size() > 1 && !literal.trim().isEmpty() ) {
 			 if(openedTags.get(openedTags.size() - 1).contains("value")) {
-					this.stringAttributeBool=false;
+					//this.stringAttributeBool=false;
 					System.out.println("StringAttribute Adding: "+this.stringAttribute+" - "+literal);
 					currentIndividual.addProperty(model.createDatatypeProperty(this.stringAttribute),
 							this.determineLiteralType(literal));
@@ -312,14 +318,14 @@ public class KnownSchemaParser implements ContentHandler {
 					&& knownMappings.get(openedTags.get(openedTags.size() - 1)).isObjectProperty()
 					&& this.currentRestrictions.containsKey(openedTags.get(openedTags.size() - 1))
 					&& !this.currentRestrictions.get(openedTags.get(openedTags.size() - 1))
-							.contains("http://www.w3.org/2001/XMLSchema#")
+							.contains(XMLSchema)
 					&& StringUtils.isNumeric(literal)) {
 				this.currentIndividual.addProperty(model.getObjectProperty(openedTags.get(openedTags.size() - 1)),
 						model.getIndividual(
 								this.currentRestrictions.get(openedTags.get(openedTags.size() - 1)) + "_" + literal));
 				alreadyHandled = true;
-			} else if (openedTags.get(openedTags.size() - 1).contains("Corner")
-					&& stack2.lastElement().contains("Envelope")) {
+			} else if (openedTags.get(openedTags.size() - 1).contains(Corner)
+					&& stack2.lastElement().contains(Envelope)) {
 				multipleChildrenBuffer.append("<").append(openedTags2.get(openedTags2.size() - 1)).append(">")
 						.append(literal).append("</").append(openedTags2.get(openedTags2.size() - 1)).append(">");
 				alreadyHandled = true;
@@ -335,7 +341,7 @@ public class KnownSchemaParser implements ContentHandler {
 				String gmlStr = gmlStrBuilder.toString();
 				// System.out.println("gmlStr: "+gmlStr);
 				if(this.lastlinkedIndividual!=null) {
-					this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
+					this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + hasGeometry),this.currentIndividual);
 					this.lastlinkedIndividual=null;
 				}
 				this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + ASGML),
@@ -344,10 +350,10 @@ public class KnownSchemaParser implements ContentHandler {
 					wktlit = formatWKTString(wktlit, ' ', 2);
 				try {
 					wktlit=wktlit.replace(","," ");
-					com.vividsolutions.jts.geom.Geometry geom = (com.vividsolutions.jts.geom.Geometry) wktreader
-							.read(wktlit);
+					//com.vividsolutions.jts.geom.Geometry geom = (com.vividsolutions.jts.geom.Geometry) wktreader
+					//		.read(wktlit);
 					if(this.lastlinkedIndividual!=null) {
-						this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
+						this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + hasGeometry),this.currentIndividual);
 						this.lastlinkedIndividual=null;
 					}
 					this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + WKT),
@@ -393,7 +399,8 @@ public class KnownSchemaParser implements ContentHandler {
 	private Map<String, String> restrictedTypes(String classType) {
 		Map<String, String> restrictedTypes = new TreeMap<String, String>();
 		Queue<String> superClasses = new LinkedList<String>();
-		for (Iterator<OntClass> supers = this.model.getOntClass(classType).listSuperClasses(true); supers.hasNext();) {
+		ExtendedIterator<OntClass> supers = this.model.getOntClass(classType).listSuperClasses(true);
+		while (supers.hasNext()) {
 			OntClass superClass = supers.next();
 
 			if (superClass.isRestriction() && superClass.asRestriction().isAllValuesFromRestriction()) {
@@ -406,11 +413,12 @@ public class KnownSchemaParser implements ContentHandler {
 				superClasses.add(superClass.toString());
 			}
 		}
+		supers.close();
 		if (!superClasses.isEmpty()) {
 			while (!superClasses.isEmpty()) {
 				String cls = superClasses.poll();
-				for (Iterator<OntClass> supers = this.model.getOntClass(cls).listSuperClasses(true); supers
-						.hasNext();) {
+				supers = this.model.getOntClass(cls).listSuperClasses(true);
+				while (supers.hasNext()) {
 					OntClass superClass = supers.next();
 					if (superClass.isRestriction() && superClass.asRestriction().isAllValuesFromRestriction()) {
 						OntProperty prop = superClass.asRestriction().getOnProperty();
@@ -422,6 +430,7 @@ public class KnownSchemaParser implements ContentHandler {
 						superClasses.add(superClass.getURI());
 					}
 				}
+				supers.close();
 			}
 		}
 		return restrictedTypes;
@@ -443,8 +452,7 @@ public class KnownSchemaParser implements ContentHandler {
 			Date date = parserSDF1.parse(literal);
 			// System.out.println("DETERMINE LITERAL TYPE DATE? "+date);
 			if (date != null) {
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String dateStr = sdf.format(date);
+				String dateStr = parserSDF1.format(date);
 				return this.model.createTypedLiteral(dateStr, XSD.dateTime.getURI());
 			}
 		} catch (Exception e) {
@@ -454,8 +462,8 @@ public class KnownSchemaParser implements ContentHandler {
 			Date date = parserSDF2.parse(literal);
 			// System.out.println("DETERMINE LITERAL TYPE DATE? "+date);
 			if (date != null) {
-				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-				String dateStr = sdf.format(date);
+				
+				String dateStr = parserSDF1.format(date);
 				return this.model.createTypedLiteral(dateStr, XSD.date.getURI());
 			}
 		} catch (Exception e) {
@@ -527,12 +535,12 @@ public class KnownSchemaParser implements ContentHandler {
 				 && literal.isEmpty() && attributes.getLength()>1) {
 				OntClass cls=model.createClass(uuid);
 				Individual ind=cls.createIndividual(UUID.randomUUID().toString());
-				System.out.println((openedTags.get(openedTags.size() - 1)));
-				System.out.println(openedTags.get(openedTags.size() - 1)+" Literal is empty "+attributes.getLength());
+				//System.out.println((openedTags.get(openedTags.size() - 1)));
+				//System.out.println(openedTags.get(openedTags.size() - 1)+" Literal is empty "+attributes.getLength());
 				int i=0;
 				while(i<attributes.getLength()) {
-					System.out.println(openedTags.get(openedTags.size() - 1)+" - "
-				+attributes.getLocalName(i)+" - "+attributes.getValue(i));
+					//System.out.println(openedTags.get(openedTags.size() - 1)+" - "
+				//+attributes.getLocalName(i)+" - "+attributes.getValue(i));
 					ind.addProperty(model.createDatatypeProperty(attributes.getLocalName(i)),
 							determineLiteralType(attributes.getValue(i)));
 					i++;
@@ -557,17 +565,20 @@ public class KnownSchemaParser implements ContentHandler {
 				this.envelope = false;
 				this.multipleChildrenBuffer.append("</").append(qName).append(">");
 				if(this.lastlinkedIndividual!=null)
-					this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + "hasGeometry"),this.currentIndividual);
+					this.lastlinkedIndividual.addProperty(this.model.createObjectProperty(NSGEO + hasGeometry),this.currentIndividual);
 				this.currentIndividual.addProperty(this.model.createDatatypeProperty(NSGEO + ASGML),
 						this.model.createTypedLiteral(multipleChildrenBuffer.toString(), GMLLiteral));
 			}
 			String lastElement = stack.pop();
+			//System.out.println(lastElement);
+			//System.out.println(stack.toString());
+			//System.out.println(stack2.toString());
 			stack2.pop();
 			restrictionStack.pop();
 			if (!stack.isEmpty()) {
-				int count=StringUtils.countMatches(stack.lastElement(), "http");
+				int count=StringUtils.countMatches(stack.lastElement(), HTTP2);
 				if(count>1) {
-					String indid=stack.lastElement().substring(stack.lastElement().lastIndexOf("http"));
+					String indid=stack.lastElement().substring(stack.lastElement().lastIndexOf(HTTP2));
 					this.currentIndividual = this.model.getIndividual(stack.lastElement());
 				}else {
 					this.currentIndividual = this.model.getIndividual(stack.lastElement());
@@ -584,14 +595,16 @@ public class KnownSchemaParser implements ContentHandler {
 				this.currentRestrictions = restrictionStack.lastElement();
 			alreadyHandled=true;
 		}
-
-		
+	
 		if (featureMembers.contains(localName)) {
+			System.out.println("FINISHED=============================================");
+			System.out.println(lastlinkedIndividual);
+			System.out.println(literalBuffer);
 			this.featureMember = false;
 		}
-		if(localName.contains("stringAttribute")) {
+		/*if(localName.contains("stringAttribute")) {
 			stringAttributeBool=false;
-		}
+		}*/
 		if ((uri + "#" + localName).equals(currentType)) {
 			this.inClass = false;
 		}
@@ -604,13 +617,9 @@ public class KnownSchemaParser implements ContentHandler {
 	}
 
 	public static void restructureDomains(OntModel model) {
-		ExtendedIterator<ObjectProperty> test = model.listObjectProperties();
-		List<ObjectProperty> objprops = new LinkedList<ObjectProperty>();
-		while (test.hasNext()) {
-			objprops.add(test.next());
-		}
-		test.close();
-		for (ObjectProperty prop : objprops) {
+		ExtendedIterator<ObjectProperty> objprops = model.listObjectProperties();
+		while (objprops.hasNext()) {
+			ObjectProperty prop=objprops.next();
 			ExtendedIterator<? extends OntResource> domains = prop.listDomain();
 			List<RDFNode> elements = new LinkedList<RDFNode>();
 			List<RDFNode> elements2 = new LinkedList<RDFNode>();
@@ -624,7 +633,7 @@ public class KnownSchemaParser implements ContentHandler {
 						first = false;
 					}
 					OntResource curdom = domains.next();
-					if (!curdom.getURI().contains("http://www.w3.org/2000/01/rdf-schema#")
+					if (!curdom.getURI().contains(RDFSchema)
 							&& !curdom.getURI().contains(OWL.NS))
 						elements.add(curdom);
 				}
@@ -643,7 +652,7 @@ public class KnownSchemaParser implements ContentHandler {
 					first = false;
 				}
 				OntResource curran = ranges.next();
-				if (!curran.getURI().contains("http://www.w3.org/2000/01/rdf-schema#")
+				if (!curran.getURI().contains(RDFSchema)
 						&& !curran.getURI().contains(OWL.NS))
 					elements2.add(curran);
 			}
@@ -652,15 +661,9 @@ public class KnownSchemaParser implements ContentHandler {
 						model.createList(elements2.toArray(new RDFNode[elements2.size()]))));
 			ranges.close();
 		}
-		List<DatatypeProperty> dataprops = new LinkedList<DatatypeProperty>();
-		ExtendedIterator<DatatypeProperty> test2 = model.listDatatypeProperties();
-		while (test2.hasNext()) {
-			dataprops.add(test2.next());
-		}
-		test2.close();
-
-		for (DatatypeProperty prop2 : dataprops) {
-			// DatatypeProperty prop2 = test2.next();
+		ExtendedIterator<DatatypeProperty> dataprops = model.listDatatypeProperties();
+		while (dataprops.hasNext()) {
+			DatatypeProperty prop2 = dataprops.next();
 			ExtendedIterator<? extends OntResource> domains2 = prop2.listDomain();
 			List<RDFNode> doms = new LinkedList<RDFNode>();
 			List<RDFNode> rgs = new LinkedList<RDFNode>();
@@ -673,7 +676,7 @@ public class KnownSchemaParser implements ContentHandler {
 					first = false;
 				}
 				OntResource curdom = domains2.next();
-				if (curdom.getURI() != null && !curdom.getURI().contains("http://www.w3.org/2000/01/rdf-schema#")
+				if (curdom.getURI() != null && !curdom.getURI().contains(RDFSchema)
 						&& !curdom.getURI().contains(OWL.NS))
 					doms.add(curdom);
 				// domains.add(domains2.next());
@@ -692,7 +695,7 @@ public class KnownSchemaParser implements ContentHandler {
 					first = false;
 				}
 				OntResource curran = ranges2.next();
-				if (!curran.getURI().contains("http://www.w3.org/2000/01/rdf-schema#")
+				if (!curran.getURI().contains(RDFSchema)
 						&& !curran.getURI().contains(OWL.NS))
 					rgs.add(curran);
 			}
@@ -700,7 +703,7 @@ public class KnownSchemaParser implements ContentHandler {
 				prop2.setRange(model.createUnionClass(null, model.createList(rgs.toArray(new RDFNode[rgs.size()]))));
 			ranges2.close();
 		}
-		test2.close();
+		dataprops.close();
 	}
 
 
