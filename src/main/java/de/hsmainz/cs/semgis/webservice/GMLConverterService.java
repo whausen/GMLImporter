@@ -1,8 +1,12 @@
 package de.hsmainz.cs.semgis.webservice;
 
+import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.StringWriter;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -20,9 +24,12 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 
-import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.FileUtils;
 import org.apache.jena.ontology.OntModel;
 
 import org.apache.jena.rdf.model.Model;
@@ -42,23 +49,30 @@ public class GMLConverterService {
 		@Consumes(MediaType.MULTIPART_FORM_DATA)
 		@Produces({"text/ttl"})
 		@Path("/convert")
-	    public String queryService(@FormDataParam("file") InputStream uploadedInputStream,
+	    public Response queryService(@FormDataParam("file") InputStream uploadedInputStream,
 				@FormDataParam("file") FormDataContentDisposition fileDetail,
 				@QueryParam("format") String format) { 
 			final String dir = System.getProperty("user.dir");
 	        System.out.println("current dir = " + dir); 
 	        try {
-				String theString = IOUtils.toString(uploadedInputStream, "UTF-8");
-				OntModel model=GMLImporter.processFile(fileDetail.getType(), theString, true, false, "");
-				StringWriter writer=new StringWriter();
-				model.write(writer, "TTL");
+	        	FileUtils.copyInputStreamToFile(uploadedInputStream, new File("tempfile.gml"));
+				OntModel model=GMLImporter.processFile(fileDetail.getType(), "tempfile.gml", false, false, "");
 				System.out.println("Finished the conversion");
-				return writer.toString();
+				StreamingOutput stream = new StreamingOutput() {
+				    @Override
+				    public void write(OutputStream os) throws IOException,
+				    WebApplicationException {
+				      Writer writer = new BufferedWriter(new OutputStreamWriter(os));
+				      model.write(writer, "TTL");
+				    }
+				  };
+				  return Response.ok(stream).type("text/ttl").build();
 			} catch (IOException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				 return Response.ok("").build();	
 			} 
-	        return "Conversion failed";		
+	       	
 		}
 		
 		@GET
