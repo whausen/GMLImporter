@@ -5,22 +5,11 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
-import org.apache.jena.ontology.OntResource;
 import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.RDFList;
-import org.apache.jena.rdf.model.RDFNode;
-import org.apache.jena.rdf.model.ResourceRequiredException;
-import org.apache.jena.rdf.model.Statement;
-import org.apache.jena.rdf.model.StmtIterator;
-import org.apache.jena.shared.JenaException;
-import org.apache.jena.util.iterator.ExtendedIterator;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
@@ -195,9 +184,9 @@ public class GMLImporter {
 		try {
 			KnownSchemaParser parser;
 			if (fileformat.isEmpty()) {
-				parser = new KnownSchemaParser(model, true, true);
+				parser = new KnownSchemaParser(model, true, true,"");
 			} else {
-				parser = new KnownSchemaParser(model, false, false);
+				parser = new KnownSchemaParser(model, false, false,"");
 			}
 			XMLReader reader = XMLReaderFactory.createXMLReader();
 			reader.setContentHandler(parser);
